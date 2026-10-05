@@ -33,10 +33,10 @@ def build_ctx(theme_name):
     theme.apply_theme(QApplication.instance(), theme.palette_for(theme_name))
     ctx = AppContext(Settings())
     # WTTOOLBOX_GAME=<install> to shoot the pages with a game attached; the
-# pages fall back to their empty states when it is unset.
-GAME = os.environ.get("WTTOOLBOX_GAME", "")
-if GAME:
-    ctx.set_install(GameInstall(root=GAME, source="manual"), remember=False)
+    # pages fall back to their empty states when it is unset.
+    game = os.environ.get("WTTOOLBOX_GAME", "")
+    if game and os.path.isdir(game):
+        ctx.set_install(GameInstall(root=game, source="manual"), remember=False)
     return ctx
 
 

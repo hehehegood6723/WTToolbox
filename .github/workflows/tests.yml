@@ -32,8 +32,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Parse every Python file
-        run: python -c "import ast,pathlib,sys; bad=[p for p in pathlib.Path('.').rglob('*.py') if 'dist' not in p.parts and (lambda: False)()]; [ast.parse(p.read_text(encoding='utf-8')) for p in bad]; print('parsed', len(bad), 'files')"
+      - name: Repository hygiene (byte-compile, Qt-free core, no machine paths)
+        run: python tests/test_syntax.py
 
       - name: blk round-trip
         run: python tests/test_blk.py

@@ -13,6 +13,39 @@
 
 ---
 
+## 界面预览
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/page_home_light.png" alt="主页（浅色）"></td>
+<td width="50%"><img src="docs/screenshots/page_home_dark.png" alt="主页（深色）"></td>
+</tr>
+<tr>
+<td align="center"><b>主页 · 浅色</b><br>正式版与测试版两个客户端各自检测、互不影响</td>
+<td align="center"><b>主页 · 深色</b><br>浅色/深色一键切换，无需重启</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/page_sound_light.png" alt="音效模组"></td>
+<td width="50%"><img src="docs/screenshots/page_tools_light.png" alt="工具箱"></td>
+</tr>
+<tr>
+<td align="center"><b>音效模组</b><br>安装前自动备份，可一键完整回滚</td>
+<td align="center"><b>工具箱</b><br>图形配置 / 磁盘清理 / 日志 / 自检 / 回收站</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/page_library_light.png" alt="信息库"></td>
+<td width="50%"><img src="docs/screenshots/page_settings_light.png" alt="设置"></td>
+</tr>
+<tr>
+<td align="center"><b>信息库</b><br>回放解析、截图、涂装/瞄具/任务管理</td>
+<td align="center"><b>设置</b><br>主题、启动项、缓存、备份、自启</td>
+</tr>
+</table>
+
+> 截图由 `tools/shot_all.py` 直接渲染真实界面生成（不是手工绘制的效果图）。
+
+---
+
 ## 快速开始
 
 ### 从源码运行
@@ -327,7 +360,7 @@ Get-Content "$env:APPDATA\WTToolbox\logs\selftest.txt"
 
 所有功能都在本机（Windows 11 22631、War Thunder 2.59.0.4x、`D:\WarThunder`）逐项实测过。
 
-**自动化测试（共 487 项断言，全部通过）**
+**自动化测试（共 493 项断言，全部通过）**
 
 测试套件**在装没装游戏的机器上都能跑**：找到游戏时下面的集成检查真跑；
 找不到时这些检查会标记为 `[skip]` 并说明原因，其余照常运行。
@@ -336,6 +369,7 @@ Get-Content "$env:APPDATA\WTToolbox\logs\selftest.txt"
 
 | 套件 | 有游戏 | 无游戏 | 覆盖内容 |
 | --- | --- | --- | --- |
+| `tests/test_syntax.py` | 6 | 6 | 仓库卫生：**所有 Python 文件字节编译**（用 `compile()` 而不是只做 `ast.parse`——后者查不出「`return` 跑到函数外」这类语义错误，曾经真的让一个坏文件进了提交）、`core/` 必须保持无 Qt 依赖、源码里不得出现开发机的绝对路径 |
 | `tests/test_blk.py` | 53 | 25 | 真实 `config.blk` 的**逐字节无损往返**、值替换、新建键、新建嵌套块、原子写入与备份；无游戏时改用随仓库提供的合成夹具 |
 | `tests/test_core.py` | 110 | 69 | 路径检测、`aces.exe` 版本读取、101 个回放头部解析、日志枚举与增量跟随、清理项测量、`zip` 安装（含 zip-slip 防护）、**音效模组安装→回滚后与安装前逐文件字节一致**、实时官方资讯抓取 |
 | `tests/test_ui.py` | 42 | 42 | 主窗口装配、7 个页面的**按需加载**与切换、8 个缩放热区、托盘、以及**配置编辑器在沙箱副本上的真实写入**（改值 / 套预设 / 新建键 / 参数不丢失 / 注释不丢失 / 无临时文件残留）；无游戏时用合成的合法安装目录 |
@@ -503,6 +537,7 @@ thunderkit/                         ← 工作区目录名，工具本身叫 WTT
 ## 测试
 
 ```powershell
+.venv\Scripts\python .\tests\test_syntax.py          # 仓库卫生（字节编译 / core 无 Qt / 无本机路径）
 .venv\Scripts\python .\tests\test_blk.py             # blk 解析与保真写回
 .venv\Scripts\python .\tests\test_core.py            # 全部后端功能（含真实回放/日志/资讯/音效回滚）
 .venv\Scripts\python .\tests\test_ui.py              # 主窗口、页面切换、配置编辑器写入
