@@ -1,0 +1,11 @@
+# Runtime dependencies.
+#   pip install -r requirements.txt
+#
+# PySide6-Essentials is the trimmed Qt build: it ships QtCore/QtGui/QtWidgets/
+# QtSvg/QtNetwork, which is everything this app uses.  The full PySide6 wheel
+# also drags in WebEngine and 3D and roughly triples the download.
+PySide6-Essentials==6.11.2
+
+# shiboken6 is PySide6's binding layer and is pulled in automatically; pinned
+# here so a version mismatch cannot silently break the Qt objects.
+shiboken6==6.11.2

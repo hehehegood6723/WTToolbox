@@ -1,0 +1,13 @@
+# Extra dependencies for building the exe and regenerating the brand assets.
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# PyInstaller   -> build.ps1
+# Pillow        -> tools/make_assets.py (draws icon.ico and banner.png from scratch)
+#
+# tools/build_vehicle_index.py needs nothing beyond the standard library; the
+# index it produces (src/wttoolbox/assets/vehicles.json) is committed, so you
+# only need to run it when you want to refresh the vehicle list.
+-r requirements.txt
+
+PyInstaller==6.22.3
+pillow==12.3.0

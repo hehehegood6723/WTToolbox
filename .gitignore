@@ -1,0 +1,38 @@
+# Build output
+dist/
+build/pyi/
+build/spec-onedir/
+build/spec-onefile/
+build/asset-preview/
+shots/
+
+# PyInstaller
+*.manifest
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Test / tool scratch
+.pytest_cache/
+.wiki-cache/
+*.log
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Never commit a real game config or personal settings
+config.blk
+settings.json

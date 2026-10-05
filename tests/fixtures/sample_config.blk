@@ -1,0 +1,38 @@
+// WTToolbox test fixture.
+//
+// A small config.blk in the same shape as the real one the game writes:
+// line comments, nested blocks, and one value of every type the format uses
+// (b = bool, i = int, r = real, t = text).
+//
+// tests/test_ui.py uses the player's own config.blk when War Thunder is
+// installed, and falls back to this file otherwise, so the config editor's
+// write path is exercised on any machine.
+// Keep the keys below in sync with the assertions in test_ui.py.
+
+graphicsQuality:t="medium"
+language:t="Chinese"
+
+video{
+  vsync:b=no
+  ssaa:r=1
+  grassRadiusMul:r=0.1
+  antialiasing_mode:t="off"
+  fxaa:b=yes
+  shadowQuality:r=2
+}
+
+sound{
+  enable_mod:b=no
+  speakerMode:t="auto"
+  masterVolume:r=1
+}
+
+render{
+  renderer:t="auto"
+  debugRender:b=no
+}
+
+network{
+  // the real file also carries the client channel here
+  curCircuit:t="production"
+}
