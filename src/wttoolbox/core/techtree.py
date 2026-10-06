@@ -56,12 +56,14 @@ _WORLD: "World | None" = None
 #: Ground  : rank II 4, rank III 5, ranks IV-V 6, rank VI and up 5
 #: Aviation: rank II 3, ranks III-V 6, ranks VI-VIII 5, rank IX 3
 #: Navy    : every vehicle of the previous rank, capped at six
-#: Helicopter trees start at rank V, so only ranks VI and VII have a gate; they
-#:          follow the aviation numbers and the app labels that as an assumption.
+#: Helicopter: the tree starts at rank V and is *not* gated by another
+#:          helicopter rank.  Rank V needs a rank V **ground or air** vehicle of
+#:          the same nation; every later rank needs one helicopter of the rank
+#:          below.  See :data:`HELICOPTER_ENTRY_RANK`.
 RANK_RULES: dict[str, object] = {
     "tank": {2: 4, 3: 5, 4: 6, 5: 6, 6: 5, 7: 5, 8: 5, 9: 5, 10: 5},
     "aircraft": {2: 3, 3: 6, 4: 6, 5: 6, 6: 5, 7: 5, 8: 5, 9: 3, 10: 5},
-    "helicopter": {6: 5, 7: 5},
+    "helicopter": {6: 1, 7: 1, 8: 1},
     "ship": "all_up_to_6",
     "boat": "all_up_to_6",
 }
@@ -69,13 +71,19 @@ RANK_RULES: dict[str, object] = {
 #: The navy rule researches everything in the previous rank up to this many.
 NAVY_CAP = 6
 
+#: Helicopter trees open at this rank, and they are opened by a vehicle of
+#: another class rather than by a lower helicopter rank.
+HELICOPTER_ENTRY_RANK = 5
+HELICOPTER_ENTRY_CLASSES = ("tank", "aircraft")
+
 RANK_LABELS = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII",
                8: "VIII", 9: "IX", 10: "X"}
 
 RULE_SOURCES = {
     "tank": "陆战：II 级 4 辆、III 级 5 辆、IV–V 级 6 辆、VI 级及以后 5 辆",
     "aircraft": "空军：II 级 3 辆、III–V 级 6 辆、VI–VIII 级 5 辆、IX 级 3 辆",
-    "helicopter": "直升机：树从 V 级开始，VI/VII 级沿用空军的 5 辆（规则未单独给出）",
+    "helicopter": "直升机：从 V 级起，解锁需 1 辆同国 V 级陆战或空中载具，"
+                  "之后每级需 1 辆上一级直升机",
     "ship": f"海军：需研发上一级全部载具，超过 {NAVY_CAP} 辆时只需 {NAVY_CAP} 辆",
     "boat": f"海军：需研发上一级全部载具，超过 {NAVY_CAP} 辆时只需 {NAVY_CAP} 辆",
 }
@@ -105,6 +113,7 @@ REASON_PATH = "路径"
 REASON_GATE = "阶级门槛"
 REASON_TARGET = "目标"
 REASON_INFERRED = "列连接"
+REASON_ENTRY = "直升机入门"
 
 
 def _asset(name: str) -> str:
@@ -395,6 +404,11 @@ class Plan:
     rank_rules: dict[int, int] = field(default_factory=dict)
     rule_source: str = ""
     premium: bool = False
+    #: The rank V ground/air vehicle that opens the helicopter tree, if any.
+    entry_name: str = ""
+    entry_class: str = ""
+    entry_rp: int = 0
+    entry_sl: int = 0
 
     @property
     def research_points(self) -> int:
@@ -415,6 +429,16 @@ class Plan:
     @property
     def complete(self) -> bool:
         return not self.missing_costs
+
+
+def researchable_slugs_in_rank(vehicle_class: str, nation: str, rank: int) -> list[str]:
+    """Researchable vehicles of one rank in a nation's tree for a class."""
+    w = world()
+    return [
+        node.slug.lower()
+        for node in nodes_for(vehicle_class, nation)
+        if node.rank == rank and w.researchable(node.slug)
+    ]
 
 
 def _candidates_for_rank(nation: str, vehicle_class: str, rank: int) -> list[tuple[int, str]]:
@@ -496,6 +520,38 @@ def research_plan(slug: str, rank_rules: dict | None = None) -> Plan | None:
             )
 
     counted[node.slug] = REASON_TARGET
+
+    # Helicopter trees are not opened by a lower helicopter rank: their rank V
+    # needs a rank V ground or air vehicle of the same nation.  Rather than
+    # assuming the player already owns one, the cheapest such route is computed
+    # and folded in, and reported separately so it can be subtracted.
+    if node.cls == "helicopter":
+        best: Plan | None = None
+        for other in HELICOPTER_ENTRY_CLASSES:
+            for candidate in researchable_slugs_in_rank(other, node.nation, HELICOPTER_ENTRY_RANK):
+                sub = research_plan(candidate, rules)
+                if sub is None or not sub.complete:
+                    continue
+                if best is None or sub.research_points < best.research_points:
+                    best = sub
+        if best is not None:
+            for step in best.steps:
+                counted.setdefault(step.slug, REASON_ENTRY)
+            plan.entry_name = best.name
+            plan.entry_class = best.cls
+            plan.entry_rp = best.research_points
+            plan.entry_sl = best.silver_lions
+            plan.notes.append(
+                f"解锁直升机需要 1 辆同国第 {RANK_LABELS.get(HELICOPTER_ENTRY_RANK, HELICOPTER_ENTRY_RANK)} 级"
+                f"陆战或空中载具；这里取了最便宜的一条：{best.name}"
+                f"（{best.research_points:,} 研发点 / {best.silver_lions:,} 银狮，"
+                f"{best.node_count} 辆）。如果你已经有五级载具，可以减去这部分。"
+            )
+        else:
+            plan.notes.append(
+                "解锁直升机需要 1 辆同国五级陆战或空中载具；"
+                "本国的相关数据不足，未能计入这部分成本。"
+            )
 
     steps: list[Step] = []
     order = {key: w.nodes[key].order for key in w.order}

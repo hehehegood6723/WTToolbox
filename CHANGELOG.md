@@ -19,7 +19,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   rank gate, and lists every vehicle it counted with the reason, so the total can
   be checked against the game.  The rank-unlock numbers are the game's own:
   ground 4/5/6/6/5/5/5, aviation 3/6/6/6/5/5/5/3 including the rank IX gate, and
-  for navies everything in the previous rank capped at six.
+  for navies everything in the previous rank capped at six.  Helicopter
+  trees open at rank V and are opened by **a rank V ground or air vehicle of
+  the same nation**, not by a lower helicopter rank; every later rank then
+  needs one helicopter of the rank below.  The cheapest such entry route is
+  computed and reported separately from the helicopters themselves, so a
+  player who already owns a rank V vehicle can subtract it.
 - **Penetration comparison** (`穿深对照`): pick any vehicle's any shell, a
   distance and an impact angle, and see the verdict for every armour plate of any
   target - thickness, geometric effective thickness, published penetration,

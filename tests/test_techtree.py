@@ -137,9 +137,16 @@ for count, expected in ((3, 3), (6, 6), (10, 6)):
     check(f"navy: {count} researchable -> {expected}",
           techtree.gate_requirement("ship", 3, count) == expected,
           str(techtree.gate_requirement("ship", 3, count)))
-check("helicopters gate only from rank VI",
-      techtree.gate_requirement("helicopter", 5, 99) == 0
-      and techtree.gate_requirement("helicopter", 6, 99) == 5)
+check("helicopter rank V is not gated by another helicopter rank",
+      techtree.gate_requirement("helicopter", 5, 99) == 0,
+      str(techtree.gate_requirement("helicopter", 5, 99)))
+check("each later helicopter rank needs one of the rank below",
+      [techtree.gate_requirement("helicopter", r, 99) for r in (6, 7)] == [1, 1],
+      str([techtree.gate_requirement("helicopter", r, 99) for r in (6, 7)]))
+check("the helicopter entry rank and classes are the documented ones",
+      techtree.HELICOPTER_ENTRY_RANK == 5
+      and techtree.HELICOPTER_ENTRY_CLASSES == ("tank", "aircraft"),
+      f"{techtree.HELICOPTER_ENTRY_RANK} {techtree.HELICOPTER_ENTRY_CLASSES}")
 
 # --------------------------------------------------------------------------- #
 section("research plan")
@@ -187,6 +194,49 @@ if premium:
           plan is not None and plan.research_points == 0)
 
 check("an unknown slug returns None", techtree.research_plan("not_a_vehicle") is None)
+
+# --------------------------------------------------------------------------- #
+section("helicopter entry rule")
+# Helicopter trees open at rank V and are opened by a rank V ground or air
+# vehicle of the same nation, not by a lower helicopter rank.
+helis = [n for n in world.nodes.values() if n.cls == "helicopter" and n.rank == 5]
+check("rank V helicopters exist in the tree", len(helis) > 0, str(len(helis)))
+if helis:
+    plan = techtree.research_plan(helis[0].slug)
+    check("a rank V helicopter plan resolves", plan is not None)
+    if plan:
+        check("its own ranks contribute no helicopter gate",
+              all(count == 0 for rank, count in plan.rank_rules.items() if rank <= 5),
+              str(plan.rank_rules))
+        check("it names a rank V ground or air vehicle as the entry",
+              plan.entry_class in ("tank", "aircraft") and bool(plan.entry_name),
+              f"{plan.entry_class!r} {plan.entry_name!r}")
+        check("the entry cost is reported separately",
+              plan.entry_rp > 0 and plan.entry_rp <= plan.research_points,
+              f"{plan.entry_rp} of {plan.research_points}")
+        check("the entry vehicle is counted in the steps",
+              any(step.reason == techtree.REASON_ENTRY for step in plan.steps),
+              str(sorted({s.reason for s in plan.steps})))
+        check("the entry rule is explained to the user",
+              any("五级" in note and "减去" in note for note in plan.notes),
+              str(plan.notes)[:160])
+        note(f"helicopter entry: {plan.entry_name} ({plan.entry_class}), "
+             f"{plan.entry_rp:,} of {plan.research_points:,} RP")
+
+    higher = [n for n in world.nodes.values() if n.cls == "helicopter" and n.rank >= 6]
+    if higher:
+        plan = techtree.research_plan(higher[0].slug)
+        check("a later rank needs one helicopter of the rank below",
+              plan is not None and all(
+                  count == 1 for rank, count in plan.rank_rules.items() if rank >= 6
+              ),
+              str(plan.rank_rules if plan else None))
+        if plan:
+            check("the later rank also carries the entry cost", plan.entry_rp > 0,
+                  str(plan.entry_rp))
+            check("its own cost is the remainder",
+                  plan.research_points - plan.entry_rp > 0,
+                  str(plan.research_points - plan.entry_rp))
 
 # --------------------------------------------------------------------------- #
 section("penetration comparison uses only published data")
