@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ...core import wtdata
+from ...core import techtree, wtdata
 from .. import icons, theme, widgets
 
 __all__ = ["VehiclePickerDialog"]
@@ -64,7 +64,7 @@ class VehiclePickerDialog(QDialog):
         titles.setSpacing(1)
         titles.addWidget(widgets.make_label(title, "H2"))
         subtitle = (
-            f"本地索引收录 {stats['count']:,} 辆载具 · 数据来自 War Thunder 官方 Wiki"
+            f"本地索引收录 {stats['count']:,} 辆载具 · 名称取自游戏本地化，代号与数据来自 War Thunder Wiki"
         )
         if self._class_lock:
             zh = stats["classes"].get(self._class_lock, {}).get("zh", self._class_lock)
@@ -177,8 +177,12 @@ class VehiclePickerDialog(QDialog):
             self.table.setRowCount(0)
             self.table.setRowCount(len(vehicles))
             for row, vehicle in enumerate(vehicles):
-                name = QTableWidgetItem(vehicle.name)
+                chinese = techtree.name_zh(vehicle.slug)
+                name = QTableWidgetItem(chinese or vehicle.name)
                 name.setData(Qt.UserRole, vehicle)
+                name.setToolTip(
+                    " / ".join(techtree.name_lines(vehicle.slug)) + f"\n代号: {vehicle.slug}"
+                )
                 self.table.setItem(row, 0, name)
                 self.table.setItem(
                     row, 1, QTableWidgetItem(nations.get(vehicle.nation, {}).get("zh", vehicle.nation))

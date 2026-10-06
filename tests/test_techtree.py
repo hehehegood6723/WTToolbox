@@ -12,6 +12,7 @@ what the published tables support.
 from __future__ import annotations
 
 import os
+import re
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -194,6 +195,41 @@ if premium:
           plan is not None and plan.research_points == 0)
 
 check("an unknown slug returns None", techtree.research_plan("not_a_vehicle") is None)
+
+# --------------------------------------------------------------------------- #
+section("Chinese names come from the game's localisation")
+# Matched on the vehicle code against the Chinese wiki's mirror of the game's
+# localisation database, so it is a lookup rather than a translation guess.
+zh = techtree.names_zh()
+check("the Chinese name table is loaded", len(zh) > 3000, str(len(zh)))
+check("it covers almost every vehicle",
+      len(zh) >= 0.9 * len(world.nodes),
+      f"{len(zh)} names for {len(world.nodes)} vehicles")
+
+for slug, expected in (("osprey_mk4", "鱼鹰"), ("walrus_mk1", "海象"),
+                       ("ussr_t_34_1941", "T-34")):
+    got = techtree.name_zh(slug)
+    check(f"{slug} has a Chinese name", expected in got, repr(got))
+
+check("the display name prefers Chinese",
+      world.name_of("osprey_mk4") == techtree.name_zh("osprey_mk4"),
+      world.name_of("osprey_mk4"))
+check("the English name is still available",
+      world.name_en("osprey_mk4") == "Osprey Mk IV", world.name_en("osprey_mk4"))
+check("a full designation is available for tooltips",
+      "谢尔曼" in techtree.name_zh_full("us_m4a1_1942_sherman"),
+      techtree.name_zh_full("us_m4a1_1942_sherman"))
+lines = techtree.name_lines("us_m1_abrams")
+check("name_lines gives Chinese, full and English without duplicates",
+      len(lines) == len(set(lines)) and any("M1" == x for x in lines)
+      and "M1 Abrams" in lines and len(lines) >= 3, str(lines))
+check("a vehicle with no Chinese entry falls back to English",
+      world.name_of("not_a_vehicle") == "not_a_vehicle")
+
+plan = techtree.research_plan("us_m1_abrams")
+check("research steps are labelled in Chinese too",
+      plan is not None and any(re.search(r"[\u4e00-\u9fff]", s.name) for s in plan.steps),
+      str([s.name for s in plan.steps[:5]] if plan else None))
 
 # --------------------------------------------------------------------------- #
 section("helicopter entry rule")

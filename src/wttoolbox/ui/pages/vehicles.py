@@ -595,7 +595,7 @@ class _PenetrationSection(QWidget):
             # way here either: the armour and shell data are per class.
             same_class_as=wtdata.find(other) if other else None,
         )
-        if dialog.exec() != dialog.Accepted or dialog.selected is None:
+        if dialog.exec() != VehiclePickerDialog.Accepted or dialog.selected is None:
             return
         if side == "shooter":
             self.shooter = dialog.selected.slug

@@ -35,6 +35,21 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   tree parser's roman-numeral table stopped at VIII, so those twenty-two aircraft
   were being filed under rank VIII.
 
+### Fixed
+
+- **The penetration panel's vehicle picker failed with "遇到未知错误".** The
+  dialog's result was compared against ``dialog.Accepted``; in PySide6 that
+  attribute lives on the class, not the instance, so every attempt raised
+  ``AttributeError`` before the picker could return.  The crash log the app writes
+  to ``%APPDATA%\WTToolbox\logs\crash.log`` had the exact traceback.
+- **Vehicle names were only English.**  Names now come from the game's own Chinese
+  localisation, reached through the Chinese community wiki's mirror of the
+  localisation database and matched on the vehicle code - 3,148 of 3,251 vehicles
+  (96.8%), a lookup rather than a translation guess.  The compact name the game
+  lists goes in cells and rows; the full official designation and the English name
+  stay in the tooltip.  The 103 vehicles the database does not cover fall back to
+  English rather than showing an invented translation.
+
 ### Notes
 
 - The penetration panel is a **comparison of published numbers, not a

@@ -94,8 +94,10 @@ class _Cell(QFrame):
     @staticmethod
     def _tooltip(node: techtree.Node) -> str:
         world = techtree.world()
+        names = techtree.name_lines(node.slug)
         lines = [
-            world.name_of(node.slug),
+            # every name we have: Chinese short, full designation, English
+            " / ".join(names[:3]) if names else node.slug,
             f"{CLASS_LABELS.get(node.cls, node.cls)} · "
             f"{NATION_LABELS.get(node.nation, node.nation)} · "
             f"第 {techtree.RANK_LABELS.get(node.rank, node.rank)} 级",
@@ -366,6 +368,10 @@ class TechTreePage(QWidget):
         summary = techtree.vehicle_summary(node.slug)
 
         self.pick_label.setText(summary["name"])
+        english = techtree.world().name_en(node.slug)
+        full = techtree.name_zh_full(node.slug)
+        extra = [item for item in (full, english) if item and item != summary["name"]]
+        self.pick_label.setToolTip(" / ".join([summary["name"], *extra]))
         bits = [
             CLASS_LABELS.get(node.cls, node.cls),
             NATION_LABELS.get(node.nation, node.nation),

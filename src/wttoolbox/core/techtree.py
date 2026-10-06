@@ -46,6 +46,8 @@ _LOCK = threading.RLock()
 _TREES: dict | None = None
 _DATA: dict | None = None
 _INDEX: dict | None = None
+_NAMES_ZH: dict | None = None
+_NAMES_ZH_FULL: dict | None = None
 _WORLD: "World | None" = None
 
 #: How many vehicles of the previous rank must be researched to open a rank.
@@ -144,6 +146,53 @@ def vehicle_data() -> dict:
             raw = _load_json(_asset("vehicle_data.json")).get("vehicles", {})
             _DATA = {key.lower(): value for key, value in raw.items()}
         return _DATA
+
+
+def names_zh() -> dict:
+    """``{lower-case slug: Chinese name}`` - the game's own localisation.
+
+    Built by ``tools/build_names_zh.py`` from the Chinese community wiki's mirror
+    of the game's localisation database, matched on the vehicle code, so it is a
+    lookup rather than a translation guess.  Vehicles the database does not cover
+    fall back to their English name.
+    """
+    global _NAMES_ZH
+    with _LOCK:
+        if _NAMES_ZH is None:
+            raw = _load_json(_asset("vehicle_names_zh.json")).get("names", {})
+            _NAMES_ZH = {key.lower(): value for key, value in raw.items()}
+        return _NAMES_ZH
+
+
+def name_zh(slug: str) -> str:
+    """The short Chinese name the game lists, or ``""`` if there is none."""
+    return names_zh().get((slug or "").strip().lower(), "")
+
+
+def names_zh_full() -> dict:
+    """``{slug: full official designation}`` - longer, for tooltips."""
+    global _NAMES_ZH_FULL
+    with _LOCK:
+        if _NAMES_ZH_FULL is None:
+            raw = _load_json(_asset("vehicle_names_zh.json")).get("full_names", {})
+            _NAMES_ZH_FULL = {key.lower(): value for key, value in raw.items()}
+        return _NAMES_ZH_FULL
+
+
+def name_zh_full(slug: str) -> str:
+    """The full Chinese designation ("中型坦克 M4“谢尔曼”"), or ``""``."""
+    return names_zh_full().get((slug or "").strip().lower(), "")
+
+
+def name_lines(slug: str) -> list[str]:
+    """Every name we have for a vehicle, longest last, deduplicated."""
+    world_ = world()
+    out: list[str] = []
+    for candidate in (name_zh(slug), name_zh_full(slug), world_.name_en(slug), slug):
+        candidate = (candidate or "").strip()
+        if candidate and candidate not in out:
+            out.append(candidate)
+    return out
 
 
 def index() -> dict:
@@ -270,12 +319,22 @@ class World:
     def get(self, slug: str) -> Node | None:
         return self.nodes.get((slug or "").strip().lower())
 
-    def name_of(self, slug: str) -> str:
+    def name_en(self, slug: str) -> str:
+        """The English name as published by the wiki."""
         record = index().get((slug or "").lower())
         if record and record.get("name"):
             return record["name"]
         node = self.get(slug)
         return (node.name if node and node.name else slug) if node else slug
+
+    def name_of(self, slug: str) -> str:
+        """The display name: the game's Chinese name when there is one.
+
+        :meth:`name_en` still returns the wiki's English name, and the UI shows
+        both wherever there is room, so a Chinese label never hides the
+        designation the player sees in other sources.
+        """
+        return name_zh(slug) or self.name_en(slug)
 
     def rank_of(self, slug: str) -> int:
         record = vehicle_data().get((slug or "").lower(), {})
