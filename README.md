@@ -25,6 +25,13 @@
 <td align="center"><b>主页 · 深色</b><br>浅色/深色一键切换，无需重启</td>
 </tr>
 <tr>
+<td colspan="2"><img src="docs/screenshots/page_techtree_light.png" alt="科技树"></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><b>科技树</b><br>
+按 Wiki 原始网格还原各国科技树；点击任意载具算出最少研发点 / 银狮与研发顺序</td>
+</tr>
+<tr>
 <td width="50%"><img src="docs/screenshots/page_sound_light.png" alt="音效模组"></td>
 <td width="50%"><img src="docs/screenshots/page_tools_light.png" alt="工具箱"></td>
 </tr>
