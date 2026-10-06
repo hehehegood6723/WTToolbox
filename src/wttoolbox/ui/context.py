@@ -20,12 +20,13 @@ from . import theme
 
 __all__ = ["AppContext"]
 
-PAGE_ORDER = ("home", "sound", "tools", "library", "vehicles", "stats", "settings")
+PAGE_ORDER = ("home", "sound", "tools", "library", "techtree", "vehicles", "stats", "settings")
 PAGE_LABELS = {
     "home": "主页",
     "sound": "音效模组",
     "tools": "工具箱",
     "library": "信息库",
+    "techtree": "科技树",
     "vehicles": "载具对比",
     "stats": "战绩",
     "settings": "设置",
@@ -35,6 +36,7 @@ PAGE_ICONS = {
     "sound": "sound",
     "tools": "grid",
     "library": "layers",
+    "techtree": "sort",
     "vehicles": "crosshair",
     "stats": "shield",
     "settings": "gear",
@@ -44,6 +46,7 @@ PAGE_SHORT = {
     "sound": "音效",
     "tools": "工具",
     "library": "信息",
+    "techtree": "科技树",
     "vehicles": "载具",
     "stats": "战绩",
     "settings": "设置",

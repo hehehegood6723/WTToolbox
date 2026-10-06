@@ -22,7 +22,7 @@ from wttoolbox.core import winutil, wtdata  # noqa: E402
 from wttoolbox.core.gamepath import GameInstall  # noqa: E402
 from wttoolbox.core.settings import Settings  # noqa: E402
 from wttoolbox.ui import icons, theme  # noqa: E402
-from wttoolbox.ui.context import PAGE_ORDER, AppContext  # noqa: E402
+from wttoolbox.ui.context import PAGE_LABELS, PAGE_ORDER, AppContext  # noqa: E402
 
 HUGE = Qt.WidgetAttribute.WA_DontShowOnScreen
 SANDBOX = os.path.join(os.environ.get("TEMP", "."), "tk-features-test")
@@ -354,7 +354,8 @@ window.setAttribute(HUGE, True)
 window.resize(1180, 760)
 window.show()
 pump(16)
-check("all pages present in the nav", len(window.titlebar.nav_buttons) == len(PAGE_ORDER) == 7,
+check("all pages present in the nav",
+       len(window.titlebar.nav_buttons) == len(PAGE_ORDER) == len(PAGE_LABELS),
       f"{len(window.titlebar.nav_buttons)} vs {len(PAGE_ORDER)}")
 check("only the start page is built eagerly", len(window._built) == 1, str(sorted(window._built)))
 
@@ -365,7 +366,8 @@ for name in ("dark", "light", "dark"):
     elapsed = time.time() - started
     check(f"switch to {name} is fast (<2s)", elapsed < 2.0, f"{elapsed:.2f}s")
     check(f"switch to {name} applied the palette", theme.current().name == name)
-    check(f"switch to {name} kept the shell", window.stack.count() == 7 and len(window._grips) == 8)
+    check(f"switch to {name} kept the shell",
+          window.stack.count() == len(PAGE_ORDER) and len(window._grips) == 8)
 note(f"theme switch timings measured: {elapsed:.2f}s for the last one")
 
 # lazy build + navigation after the theme change
@@ -499,31 +501,31 @@ vehicles_page.setAttribute(HUGE, True)
 vehicles_page.resize(1180, 900)
 vehicles_page.show()
 pump(12)
-check("radar starts empty", not vehicles_page.radar._axes)
+check("radar starts empty", not vehicles_page.compare.radar._axes)
 
-vehicles_page.card_a.set_vehicle(wtdata.find("ussr_t_34_1941"))
-vehicles_page.card_b.set_vehicle(wtdata.find("germ_pzkpfw_iv_ausf_f2"))
-vehicles_page.compare()
-wait_until(lambda: vehicles_page._pending == 0 and vehicles_page.spec_a and vehicles_page.spec_b, timeout=120)
-check("both specs fetched", vehicles_page.spec_a is not None and vehicles_page.spec_b is not None)
-check("radar got axes", len(vehicles_page.radar._axes) >= 4, str(len(vehicles_page.radar._axes)))
-check("comparison table populated", vehicles_page.table.rowCount() == len(vehicles_page.radar._axes),
-      f"{vehicles_page.table.rowCount()} vs {len(vehicles_page.radar._axes)}")
-check("detail panes filled", len(vehicles_page.detail_a.toPlainText()) > 100)
-check("no page-level error", not vehicles_page.warning.isVisible())
-note(f"radar axes: {[a.label for a in vehicles_page.radar._axes]}")
+vehicles_page.compare.card_a.set_vehicle(wtdata.find("ussr_t_34_1941"))
+vehicles_page.compare.card_b.set_vehicle(wtdata.find("germ_pzkpfw_iv_ausf_f2"))
+vehicles_page.compare.compare()
+wait_until(lambda: vehicles_page.compare._pending == 0 and vehicles_page.compare.spec_a and vehicles_page.compare.spec_b, timeout=120)
+check("both specs fetched", vehicles_page.compare.spec_a is not None and vehicles_page.compare.spec_b is not None)
+check("radar got axes", len(vehicles_page.compare.radar._axes) >= 4, str(len(vehicles_page.compare.radar._axes)))
+check("comparison table populated", vehicles_page.compare.table.rowCount() == len(vehicles_page.compare.radar._axes),
+      f"{vehicles_page.compare.table.rowCount()} vs {len(vehicles_page.compare.radar._axes)}")
+check("detail panes filled", len(vehicles_page.compare.detail_a.toPlainText()) > 100)
+check("no page-level error", not vehicles_page.compare.warning.isVisible())
+note(f"radar axes: {[a.label for a in vehicles_page.compare.radar._axes]}")
 
-before_a = [axis.ratio_a for axis in vehicles_page.radar._axes]
-before_b = [axis.ratio_b for axis in vehicles_page.radar._axes]
-vehicles_page.swap()
+before_a = [axis.ratio_a for axis in vehicles_page.compare.radar._axes]
+before_b = [axis.ratio_b for axis in vehicles_page.compare.radar._axes]
+vehicles_page.compare.swap()
 pump(6)
-after_a = [axis.ratio_a for axis in vehicles_page.radar._axes]
-after_b = [axis.ratio_b for axis in vehicles_page.radar._axes]
+after_a = [axis.ratio_a for axis in vehicles_page.compare.radar._axes]
+after_b = [axis.ratio_b for axis in vehicles_page.compare.radar._axes]
 check("swap exchanges the two sides", after_a == before_b and after_b == before_a,
       f"{after_a} vs {before_b}")
-vehicles_page.reset()
+vehicles_page.compare.reset()
 pump(4)
-check("reset clears the chart", not vehicles_page.radar._axes and vehicles_page.table.rowCount() == 0)
+check("reset clears the chart", not vehicles_page.compare.radar._axes and vehicles_page.compare.table.rowCount() == 0)
 
 # --------------------------------------------------------------------------- #
 section("stats page disclaimer gate")

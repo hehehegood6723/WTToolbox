@@ -20,6 +20,7 @@ env/
 # Test / tool scratch
 .pytest_cache/
 .wiki-cache/
+.wikidata/
 *.log
 
 # Editors

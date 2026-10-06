@@ -6,7 +6,43 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Tech trees** (`科技树`): every nation's tree for all five vehicle classes,
+  drawn on the wiki's own grid - rank by rank, five columns per row, columns
+  continuing into the next rank, the researchable half on the left and the
+  premium half on the right.  Folders such as `M4A1/M4/M4A2` open up so each
+  member is separately selectable, because they are researched separately.
+- **Research planning**: click any vehicle to get the minimum research points
+  and silver lions to reach it, plus the exact research order.  It walks the
+  prerequisite chain (through folders), adds the vehicles needed to satisfy each
+  rank gate, and lists every vehicle it counted with the reason, so the total can
+  be checked against the game.  The rank-unlock numbers are the game's own:
+  ground 4/5/6/6/5/5/5, aviation 3/6/6/6/5/5/5/3 including the rank IX gate, and
+  for navies everything in the previous rank capped at six.
+- **Penetration comparison** (`穿深对照`): pick any vehicle's any shell, a
+  distance and an impact angle, and see the verdict for every armour plate of any
+  target - thickness, geometric effective thickness, published penetration,
+  verdict and margin - together with the reverse direction.  Shell lists carry
+  Chinese type names and their weapon; ship armour rows are read from their own
+  labels instead of being forced into the tank layout.
+- A rank-IX gate for aircraft.  The wiki has had rank IX jets for a while; the
+  tree parser's roman-numeral table stopped at VIII, so those twenty-two aircraft
+  were being filed under rank VIII.
+
+### Notes
+
+- The penetration panel is a **comparison of published numbers, not a
+  simulation** of the game's ballistics.  War Thunder's slope effects,
+  normalisation and ricochet rules are not published, so angled results say
+  outright that they are optimistic rather than inventing a formula.  No game
+  models are extracted or redistributed.
+- Cross-rank prerequisites ("the last vehicle of a column unlocks the first of the
+  next rank") are not written into the wiki's markup, so they are reconstructed
+  from the column position and labelled as reconstructed in the UI.
+- Research costs come from the wiki's vehicle pages.  Silver lions are totalled
+  as "buy everything along the way"; if the game only requires researching them,
+  the real figure is lower.
 
 ## [1.1.0] - 2026-10-05
 

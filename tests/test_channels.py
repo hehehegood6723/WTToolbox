@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QApplication, QLabel  # noqa: E402
 from wttoolbox.core import gamepath  # noqa: E402
 from wttoolbox.core.settings import Settings  # noqa: E402
 from wttoolbox.ui import theme  # noqa: E402
-from wttoolbox.ui.context import AppContext  # noqa: E402
+from wttoolbox.ui.context import PAGE_ORDER, AppContext  # noqa: E402
 
 HUGE = Qt.WidgetAttribute.WA_DontShowOnScreen
 SANDBOX = os.path.join(tempfile.gettempdir(), "tk-channels-test")
@@ -298,7 +298,7 @@ check("status strip follows the switch to 测试版", "测试版" in window.stat
       window.status_left.text())
 check("status strip shows the dev path", dev_both.lower() in window.status_left.text().lower(),
       window.status_left.text())
-check("pages were rebuilt for the new client", window.stack.count() == 7
+check("pages were rebuilt for the new client", window.stack.count() == len(PAGE_ORDER)
       and set(window._built) <= {window.current_page_key}, str(sorted(window._built)))
 
 window._force_quit = True

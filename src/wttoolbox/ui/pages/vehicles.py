@@ -16,6 +16,8 @@ import os
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QComboBox,
+    QDoubleSpinBox,
     QHBoxLayout,
     QHeaderView,
     QTableWidgetItem,
@@ -23,7 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ...core import wtdata
+from ...core import penetration, wtdata
 from .. import theme, widgets
 from ..dialogs.vehicle_picker import VehiclePickerDialog
 
@@ -75,7 +77,7 @@ class _SidesCard(widgets.Card):
         return wtdata.index_stats()["classes"].get(key, {}).get("zh", key or "—")
 
 
-class VehiclesPage(QWidget):
+class _CompareSection(QWidget):
     def __init__(self, ctx, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.ctx = ctx
@@ -483,3 +485,233 @@ class VehiclesPage(QWidget):
 
     def shutdown(self) -> None:
         pass
+
+# --------------------------------------------------------------------------- #
+# penetration comparison (feature: 穿深对照)
+# --------------------------------------------------------------------------- #
+
+class _PenetrationSection(QWidget):
+    """Pick a shell, a distance and an angle, and see what it does to a target.
+
+    The numbers are the wiki's published penetration table against the wiki's
+    published armour values.  It is explicitly *not* the game's ballistics
+    model, and the panel says so: any slope-effect formula invented here would
+    look authoritative and be wrong.
+    """
+
+    def __init__(self, ctx, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.ctx = ctx
+        self.shooter: str = ""
+        self.target: str = ""
+        self._shells: list[dict] = []
+        self._build()
+
+    # ------------------------------------------------------------------ build
+    def _build(self) -> None:
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(12)
+        outer.addWidget(self._build_header())
+        outer.addWidget(self._build_result(), 1)
+
+    def _build_header(self) -> widgets.Card:
+        card = widgets.Card(
+            "穿深对照",
+            "用 Wiki 公布的弹药穿深表对照目标装甲厚度，判定击穿与否",
+            icon_name="crosshair",
+        )
+
+        picks = QHBoxLayout()
+        picks.setSpacing(10)
+        self.btn_shooter = widgets.ghost_button("选择攻击方…", "search", lambda: self._pick("shooter"))
+        self.btn_target = widgets.ghost_button("选择目标…", "search", lambda: self._pick("target"))
+        for button in (self.btn_shooter, self.btn_target):
+            button.setMinimumWidth(190)
+            picks.addWidget(button)
+        picks.addStretch(1)
+        card.body.addLayout(picks)
+
+        controls = QHBoxLayout()
+        controls.setSpacing(9)
+        controls.addWidget(widgets.make_label("炮弹", "Muted"))
+        self.shell_combo = QComboBox()
+        self.shell_combo.setMinimumWidth(240)
+        controls.addWidget(self.shell_combo)
+
+        controls.addWidget(widgets.make_label("距离", "Muted"))
+        self.distance_combo = QComboBox()
+        for value in penetration.DISTANCES:
+            self.distance_combo.addItem(f"{value} m", value)
+        self.distance_combo.setCurrentIndex(2)
+        self.distance_combo.setFixedWidth(96)
+        controls.addWidget(self.distance_combo)
+
+        controls.addWidget(widgets.make_label("入射角", "Muted"))
+        self.angle_spin = QDoubleSpinBox()
+        self.angle_spin.setRange(0.0, 85.0)
+        self.angle_spin.setSingleStep(5.0)
+        self.angle_spin.setSuffix(" °")
+        self.angle_spin.setFixedWidth(88)
+        controls.addWidget(self.angle_spin)
+
+        self.compare_button = widgets.primary_button("开始对照", "play", self._compare)
+        controls.addWidget(self.compare_button)
+        controls.addStretch(1)
+        card.body.addLayout(controls)
+
+        self.summary = widgets.make_label(
+            "选择攻击方与目标后点击「开始对照」。数据来自 Wiki 公布的弹药表与装甲栏。",
+            "Muted",
+        )
+        self.summary.setWordWrap(True)
+        card.body.addWidget(self.summary)
+        return card
+
+    def _build_result(self) -> widgets.Card:
+        card = widgets.Card("逐部位判定", "每一行都是 Wiki 上的一个装甲读数列")
+        self.table = widgets.selectable_table(
+            ["部位", "厚度 (mm)", "等效厚度", "穿深 (mm)", "判定", "余量 (mm)"],
+            stretch_column=0,
+            row_height=27,
+        )
+        self.table.setMinimumHeight(260)
+        card.body.addWidget(self.table, 1)
+        self.notes = widgets.make_label("", "Faint")
+        self.notes.setWordWrap(True)
+        card.body.addWidget(self.notes)
+        return card
+
+    # ------------------------------------------------------------------ picks
+    def _pick(self, side: str) -> None:
+        other = self.target if side == "shooter" else self.shooter
+        current = self.shooter if side == "shooter" else self.target
+        dialog = VehiclePickerDialog(
+            self.ctx,
+            self,
+            title="选择攻击方载具" if side == "shooter" else "选择目标载具",
+            initial=wtdata.find(current) if current else None,
+            # A tank cannot be shot at with a battleship's gun in any meaningful
+            # way here either: the armour and shell data are per class.
+            same_class_as=wtdata.find(other) if other else None,
+        )
+        if dialog.exec() != dialog.Accepted or dialog.selected is None:
+            return
+        if side == "shooter":
+            self.shooter = dialog.selected.slug
+            self.btn_shooter.setText(f"攻击方：{dialog.selected.name}")
+            self._reload_shells()
+        else:
+            self.target = dialog.selected.slug
+            self.btn_target.setText(f"目标：{dialog.selected.name}")
+        self.compare_button.setEnabled(bool(self.shooter and self.target))
+
+    def _reload_shells(self) -> None:
+        self.shell_combo.clear()
+        self._shells = penetration.all_shells(self.shooter)
+        for shell in self._shells:
+            label = f"{shell['name']} · {penetration.shell_label(shell['type'])}"
+            if shell["weapon"]:
+                label = f"{label}  [{shell['weapon'].split(' Ammunition')[0][:26]}]"
+            self.shell_combo.addItem(label)
+        if not self._shells:
+            self.shell_combo.addItem("这辆载具没有公布弹药数据")
+
+    # ---------------------------------------------------------------- compare
+    def _compare(self) -> None:
+        if not (self.shooter and self.target):
+            self.ctx.notify(self, "请先选择攻击方与目标", "warn")
+            return
+        if not self._shells:
+            self.ctx.notify(self, "这辆载具没有可用的弹药数据", "warn")
+            return
+
+        distance = self.distance_combo.currentData() or 500
+        angle = float(self.angle_spin.value())
+        index = max(0, self.shell_combo.currentIndex())
+        verdict = penetration.compare(
+            self.shooter, self.target, shell_index=index, distance=distance, angle=angle
+        )
+        if verdict is None:
+            self.ctx.notify(self, "没有可对照的数据", "warn")
+            return
+
+        palette = theme.current()
+        self.table.setRowCount(0)
+        for plate in verdict.plates:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            cells = [
+                plate["label"],
+                f"{plate['thickness']}",
+                f"{plate['effective']:.0f}",
+                f"{verdict.penetration}",
+                "击穿" if plate["verdict"] == "pen" else "未击穿",
+                f"{plate['margin']:+.0f}",
+            ]
+            for column, value in enumerate(cells):
+                item = QTableWidgetItem(value)
+                if column >= 1:
+                    item.setTextAlignment(Qt.AlignCenter)
+                if column == 4:
+                    item.setForeground(
+                        QColor(palette.success if plate["verdict"] == "pen" else palette.error)
+                    )
+                self.table.setItem(row, column, item)
+
+        outcome_text = {
+            "pen": "可击穿",
+            "no": "无法击穿",
+            "partial": "部分部位可击穿",
+            "unknown": "数据不足",
+        }.get(verdict.outcome, verdict.outcome)
+        reverse = penetration.duel(self.shooter, self.target, distance=distance)
+        back = reverse.get("b_to_a")
+        back_text = ""
+        if back and back["verdict"]:
+            back_outcome = {
+                "pen": "可击穿", "no": "无法击穿", "partial": "部分部位可击穿",
+            }.get(back["verdict"].outcome, back["verdict"].outcome)
+            back_text = (
+                f"　反向：{back['verdict'].shooter_name} 的 {back['shell']['name']}"
+                f"（{back['verdict'].penetration} mm）对 {verdict.shooter_name} {back_outcome}。"
+            )
+
+        self.summary.setText(
+            f"{verdict.shooter_name} 的 {verdict.shell_name}"
+            f"（{penetration.shell_label(verdict.shell_type)}）在 {distance} m、"
+            f"{angle:g}° 入射时穿深 {verdict.penetration} mm → "
+            f"{outcome_text} {verdict.target_name}。{back_text}"
+        )
+        self.notes.setText("\n".join("· " + note for note in verdict.notes))
+        self.ctx.log.info(
+            f"穿深对照：{verdict.shooter_name} → {verdict.target_name} @{distance}m "
+            f"{verdict.penetration}mm {outcome_text}",
+            "载具",
+        )
+
+
+class VehiclesPage(QWidget):
+    """载具对比：强度对比 + 穿深对照，两个子页面。"""
+
+    def __init__(self, ctx, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.ctx = ctx
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.subnav = widgets.SubNavPanel(nav_width=150)
+        self.compare = _CompareSection(ctx)
+        self.penetration = _PenetrationSection(ctx)
+        self.subnav.add_page("强度对比", self.compare, icon_name="activity")
+        self.subnav.add_page("穿深对照", self.penetration, icon_name="crosshair")
+        layout.addWidget(self.subnav)
+
+    def on_show(self) -> None:
+        hook = getattr(self.compare, "on_show", None)
+        if callable(hook):
+            hook()
+
+    def shutdown(self) -> None:
+        hook = getattr(self.compare, "shutdown", None)
+        if callable(hook):
+            hook()

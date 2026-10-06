@@ -154,6 +154,8 @@ class MainWindow(QWidget):
                 from .pages.tools import ToolsPage as page_class
             elif key == "library":
                 from .pages.library import LibraryPage as page_class
+            elif key == "techtree":
+                from .pages.techtree import TechTreePage as page_class
             elif key == "vehicles":
                 from .pages.vehicles import VehiclesPage as page_class
             elif key == "stats":

@@ -175,29 +175,29 @@ boat = wtdata.find("us_pt6")
 plane = wtdata.find("bf-109f-4")
 check("sample vehicles resolved", None not in (tank, ship, boat, plane))
 
-page.card_a.set_vehicle(tank)
-page.card_b.set_vehicle(ship)
-page.compare()
+page.compare.card_a.set_vehicle(tank)
+page.compare.card_b.set_vehicle(ship)
+page.compare.compare()
 pump(6)
-check("tank vs ship draws no radar", not page.radar._axes, str(len(page.radar._axes)))
-check("it says 不同阵营无法比对", "不同阵营无法比对" in (page.radar._message or ""),
-      repr(page.radar._message))
-check("it names the tank class", "坦克" in (page.radar._message or ""))
-check("it names the ship class", "舰船" in (page.radar._message or ""))
-check("it tells the user what to do", "两辆坦克" in (page.radar._message or ""),
-      repr(page.radar._message))
-check("no downloads were started", page._pending == 0, str(page._pending))
-check("the table is cleared", page.table.rowCount() == 0)
+check("tank vs ship draws no radar", not page.compare.radar._axes, str(len(page.compare.radar._axes)))
+check("it says 不同阵营无法比对", "不同阵营无法比对" in (page.compare.radar._message or ""),
+      repr(page.compare.radar._message))
+check("it names the tank class", "坦克" in (page.compare.radar._message or ""))
+check("it names the ship class", "舰船" in (page.compare.radar._message or ""))
+check("it tells the user what to do", "两辆坦克" in (page.compare.radar._message or ""),
+      repr(page.compare.radar._message))
+check("no downloads were started", page.compare._pending == 0, str(page.compare._pending))
+check("the table is cleared", page.compare.table.rowCount() == 0)
 check("the blocking reason is also logged",
       any("不同阵营" in record.message for record in ctx.log.records(limit=8)),
       str([r.message for r in ctx.log.records(limit=3)]))
 
-page.card_a.set_vehicle(tank)
-page.card_b.set_vehicle(plane)
-page.compare()
+page.compare.card_a.set_vehicle(tank)
+page.compare.card_b.set_vehicle(plane)
+page.compare.compare()
 pump(6)
-check("tank vs aircraft is refused as well", not page.radar._axes)
-check("and names aircraft", "飞机" in (page.radar._message or ""), repr(page.radar._message))
+check("tank vs aircraft is refused as well", not page.compare.radar._axes)
+check("and names aircraft", "飞机" in (page.compare.radar._message or ""), repr(page.compare.radar._message))
 
 # --------------------------------------------------------------------------- #
 section("same-class pairs still work, aircraft and navy included")
@@ -212,18 +212,18 @@ for label, slug_a, slug_b, min_axes in PAIRS:
     if first is None or second is None:
         check(f"{label}: samples resolved", False, f"{slug_a} / {slug_b}")
         continue
-    page.card_a.set_vehicle(first)
-    page.card_b.set_vehicle(second)
-    page.spec_a = page.spec_b = None
-    page.compare()
-    finished = wait_until(lambda: page._pending == 0 and page.spec_a and page.spec_b, timeout=90)
-    axes = [axis.label for axis in page.radar._axes]
-    errors = (page.spec_a.error if page.spec_a else "?", page.spec_b.error if page.spec_b else "?")
+    page.compare.card_a.set_vehicle(first)
+    page.compare.card_b.set_vehicle(second)
+    page.compare.spec_a = page.compare.spec_b = None
+    page.compare.compare()
+    finished = wait_until(lambda: page.compare._pending == 0 and page.compare.spec_a and page.compare.spec_b, timeout=90)
+    axes = [axis.label for axis in page.compare.radar._axes]
+    errors = (page.compare.spec_a.error if page.compare.spec_a else "?", page.compare.spec_b.error if page.compare.spec_b else "?")
     check(f"{label}: chart produced", finished and len(axes) >= min_axes,
           f"finished={finished} axes={axes} errors={errors}")
-    check(f"{label}: table matches the chart", page.table.rowCount() == len(axes),
-          f"{page.table.rowCount()} vs {len(axes)}")
-    check(f"{label}: details filled", len(page.detail_a.toPlainText()) > 100)
+    check(f"{label}: table matches the chart", page.compare.table.rowCount() == len(axes),
+          f"{page.compare.table.rowCount()} vs {len(axes)}")
+    check(f"{label}: details filled", len(page.compare.detail_a.toPlainText()) > 100)
     note(f"{label}: {axes}")
 
 # --------------------------------------------------------------------------- #
