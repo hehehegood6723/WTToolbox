@@ -162,7 +162,9 @@ def selftest_report() -> tuple[int, str]:
         "wttoolbox.core.news",
         "wttoolbox.core.replays",
         "wttoolbox.core.settings",
-        "wttoolbox.core.soundmods",
+        "wttoolbox.core.penetration",
+    "wttoolbox.core.soundmods",
+    "wttoolbox.core.techtree",
         "wttoolbox.core.trash",
         "wttoolbox.core.winutil",
         "wttoolbox.core.wtdata",
@@ -179,6 +181,7 @@ def selftest_report() -> tuple[int, str]:
         "wttoolbox.ui.pages.settings",
         "wttoolbox.ui.pages.vehicles",
         "wttoolbox.ui.pages.stats",
+    "wttoolbox.ui.pages.techtree",
         "wttoolbox.ui.dialogs.config_editor",
         "wttoolbox.ui.dialogs.vehicle_picker",
     ]
